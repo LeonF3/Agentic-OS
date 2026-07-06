@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="swosGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C8CF8"></stop>
+      <stop offset="100%" stop-color="#A78BFA"></stop>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="112" height="112" rx="30" fill="url(#swosGrad)"></rect>
+  <ellipse cx="60" cy="60" rx="44" ry="14" fill="none" stroke="rgba(5,6,15,0.35)" stroke-width="4" transform="rotate(-18 60 60)"></ellipse>
+  <text x="60" y="76" text-anchor="middle" font-family="&#39;Space Grotesk&#39;,&#39;Helvetica Neue&#39;,sans-serif" font-size="52" font-weight="700" fill="#05060F">S</text>
+</svg>

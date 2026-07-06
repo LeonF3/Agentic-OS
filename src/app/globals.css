@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Midnight Aubergine — SWOS design tokens                              */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  --color-ink-950: #05060f;
+  --color-ink-900: #0b0d26;
+  --color-ink-850: #10133a;
+  --color-ink-800: #161a45;
+
+  --color-mist-100: #e8eaf6;
+  --color-mist-300: rgba(214, 220, 255, 0.72);
+  --color-mist-400: rgba(214, 220, 255, 0.6);
+  --color-mist-500: rgba(214, 220, 255, 0.45);
+  --color-mist-600: rgba(214, 220, 255, 0.35);
+
+  --color-indigo-glow: #7c8cf8;
+  --color-indigo-soft: #aab6ff;
+  --color-violet-glow: #a78bfa;
+  --color-violet-soft: #c4b5fd;
+  --color-cyan-glow: #67e8f9;
+  --color-nova: #e879a0;
+  --color-nova-soft: #f3a8c4;
+  --color-aurora: #8bf0b0;
+  --color-gold: #e6c87a;
+
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-accent: var(--font-caveat), cursive;
+}
+
+/* base ---------------------------------------------------------------- */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 800px at 72% -12%, rgba(88, 101, 242, 0.22), transparent 60%),
+    radial-gradient(1000px 760px at 6% 112%, rgba(139, 92, 246, 0.18), transparent 62%),
+    radial-gradient(700px 540px at 94% 82%, rgba(56, 189, 248, 0.1), transparent 60%),
+    #05060f;
+  color: var(--color-mist-100);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+}
+
+::selection {
+  background: rgba(124, 140, 248, 0.4);
+}
+
+/* Every input in the OS: visible text, visible caret, visible focus. */
+input,
+textarea,
+select {
+  caret-color: var(--color-indigo-soft);
+  color: var(--color-mist-100);
+  accent-color: var(--color-indigo-glow);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-mist-500);
+  opacity: 1;
+}
+
+*:focus-visible {
+  outline: 2px solid rgba(124, 140, 248, 0.7);
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+/* scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 140, 248, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(124, 140, 248, 0.3);
+  border-radius: 999px;
+}
+
+/* shared surfaces ------------------------------------------------------ */
+
+.panel {
+  background: rgba(148, 163, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(2, 4, 18, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  /* allow panels to shrink inside grid/flex tracks — prevents mobile overflow */
+  min-width: 0;
+}
+
+.panel-hover {
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.panel-hover:hover {
+  border-color: rgba(124, 140, 248, 0.4);
+  background: rgba(148, 163, 255, 0.09);
+}
+
+.inset {
+  background: rgba(5, 6, 15, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.field {
+  background: rgba(5, 6, 15, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  color: var(--color-mist-100);
+  padding: 8px 12px;
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.field:focus {
+  outline: none;
+  border-color: rgba(124, 140, 248, 0.75);
+  box-shadow: 0 0 0 3px rgba(124, 140, 248, 0.22);
+}
+.field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.label {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-mist-500);
+  font-weight: 500;
+}
+
+.accent-script {
+  font-family: var(--font-accent);
+  color: var(--color-gold);
+  letter-spacing: 0.02em;
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 140, 248, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(124, 140, 248, 0);
+  }
+}
+.pulse-dot {
+  animation: pulseGlow 2.4s infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+/* markdown rendering ---------------------------------------------------- */
+
+.prose-swos {
+  color: var(--color-mist-300);
+  font-size: 13.5px;
+}
+.prose-swos h1,
+.prose-swos h2,
+.prose-swos h3 {
+  color: var(--color-mist-100);
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+}
+.prose-swos h1 {
+  font-size: 1.25em;
+}
+.prose-swos h2 {
+  font-size: 1.12em;
+}
+.prose-swos h3 {
+  font-size: 1em;
+}
+.prose-swos p,
+.prose-swos ul,
+.prose-swos ol {
+  margin: 0.5em 0;
+}
+.prose-swos ul {
+  list-style: disc;
+  padding-left: 1.3em;
+}
+.prose-swos ol {
+  list-style: decimal;
+  padding-left: 1.3em;
+}
+.prose-swos code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: rgba(124, 140, 248, 0.12);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.prose-swos pre {
+  background: rgba(5, 6, 15, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 0.7em 0;
+}
+.prose-swos pre code {
+  background: transparent;
+  padding: 0;
+}
+.prose-swos blockquote {
+  border-left: 3px solid rgba(124, 140, 248, 0.5);
+  padding-left: 12px;
+  margin: 0.7em 0;
+  color: var(--color-mist-400);
+}
+.prose-swos a {
+  color: var(--color-indigo-soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-swos table {
+  border-collapse: collapse;
+  margin: 0.7em 0;
+}
+.prose-swos th,
+.prose-swos td {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 10px;
+  font-size: 0.92em;
+}
+.prose-swos hr {
+  border-color: rgba(255, 255, 255, 0.1);
+  margin: 1em 0;
+}

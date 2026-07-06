@@ -1,0 +1,37 @@
+{
+  "name": "sebastian-wonderland-os",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sebastian's Wonderland OS — Mission Control for agents, memory, and creative production.",
+  "scripts": {
+    "dev": "next dev -p 3737",
+    "build": "next build",
+    "start": "next start -p 3737",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "dompurify": "^3.2.4",
+    "gray-matter": "^4.0.3",
+    "lucide-react": "^0.544.0",
+    "marked": "^14.1.4",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "swr": "^2.3.3",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.8",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "eslint": "^9.28.0",
+    "eslint-config-next": "^15.5.0",
+    "tailwindcss": "^4.1.8",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.0"
+  }
+}
