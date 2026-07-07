@@ -163,6 +163,7 @@ export const AgentRunSchema = z.object({
   id: z.string(),
   workspaceId: z.string(),
   agentId: z.string(),
+  sessionId: z.string().nullable().optional(),
   providerId: z.string().default("local-dev"),
   model: z.string().default("local-dev"),
   title: z.string(),
@@ -186,6 +187,166 @@ export const RunInput = z.object({
   taskType: TaskTypeSchema.optional(),
   providerId: z.string().optional(),
   title: z.string().max(120).optional(),
+  skillIds: z.array(z.string()).max(8).optional(),
+  taskId: z.string().optional(),
+});
+
+/* ------------------------------------------------------------------ */
+/* Chat sessions                                                       */
+/* ------------------------------------------------------------------ */
+
+export const ChatSessionSchema = z.object({
+  id: z.string(),
+  workspaceId: z.string(),
+  agentId: z.string(),
+  title: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type ChatSession = z.infer<typeof ChatSessionSchema>;
+
+export const ChatCreateInput = z.object({
+  agentId: z.string(),
+  input: z.string().min(1, "Message is required").max(20000),
+  workspaceId: z.string().optional(),
+  skillIds: z.array(z.string()).max(8).optional(),
+});
+
+export const ChatMessageInput = z.object({
+  input: z.string().min(1, "Message is required").max(20000),
+  skillIds: z.array(z.string()).max(8).optional(),
+});
+
+/* ------------------------------------------------------------------ */
+/* Skills (Cursor-compatible SKILL.md)                                 */
+/* ------------------------------------------------------------------ */
+
+/** Matches Cursor/Claude skill `name`: lowercase, numbers, hyphens, max 64. */
+export const SkillNameSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Name must be lowercase letters, numbers, and hyphens only");
+
+export const SkillSchema = z.object({
+  id: z.string(),
+  workspaceId: z.string(),
+  name: SkillNameSchema,
+  description: z.string().min(1).max(1024),
+  body: z.string(),
+  filePath: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Skill = z.infer<typeof SkillSchema>;
+
+export type SkillWithWorkspace = Skill & { workspaceName: string; workspaceSlug: string };
+
+/* ------------------------------------------------------------------ */
+/* Connectors                                                          */
+/* ------------------------------------------------------------------ */
+
+export const ConnectorAuthTypeSchema = z.enum(["oauth2", "api_key", "mcp", "local"]);
+export type ConnectorAuthType = z.infer<typeof ConnectorAuthTypeSchema>;
+
+export const ConnectorCategorySchema = z.enum(["communication", "productivity", "creative", "mcp"]);
+export type ConnectorCategory = z.infer<typeof ConnectorCategorySchema>;
+
+export const ConnectorStatusSchema = z.enum(["disconnected", "connected", "error", "coming_soon"]);
+export type ConnectorStatus = z.infer<typeof ConnectorStatusSchema>;
+
+export const WorkspaceConnectorSchema = z.object({
+  id: z.string(),
+  workspaceId: z.string(),
+  connectorId: z.string(),
+  enabled: z.boolean().default(true),
+  status: ConnectorStatusSchema.default("disconnected"),
+  config: z.record(z.string()).default({}),
+  credentialRef: z.string().optional(),
+  connectedAt: z.string().nullable().optional(),
+  updatedAt: z.string(),
+});
+export type WorkspaceConnector = z.infer<typeof WorkspaceConnectorSchema>;
+
+export const ConnectorCatalogItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  category: ConnectorCategorySchema,
+  authType: ConnectorAuthTypeSchema,
+  icon: z.string(),
+  envKey: z.string().default(""),
+  oauthProvider: z.string().optional(),
+  docsUrl: z.string().optional(),
+  configurable: z.boolean().default(false),
+});
+export type ConnectorCatalogItem = z.infer<typeof ConnectorCatalogItemSchema>;
+
+export const ConnectorViewSchema = ConnectorCatalogItemSchema.extend({
+  binding: WorkspaceConnectorSchema.nullable(),
+  configured: z.boolean().default(false),
+});
+export type ConnectorView = z.infer<typeof ConnectorViewSchema>;
+
+export const ConnectorPatchInput = z.object({
+  workspaceId: z.string(),
+  enabled: z.boolean(),
+});
+
+export const ConnectorConnectInput = z.object({
+  workspaceId: z.string(),
+  config: z.record(z.string()).optional(),
+});
+
+export const OAuthTokenSchema = z.object({
+  id: z.string(),
+  workspaceId: z.string(),
+  provider: z.literal("google"),
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  expiresAt: z.string(),
+  scopes: z.array(z.string()).default([]),
+  email: z.string().default(""),
+  updatedAt: z.string(),
+});
+export type OAuthToken = z.infer<typeof OAuthTokenSchema>;
+
+export const MailMessageSchema = z.object({
+  id: z.string(),
+  threadId: z.string(),
+  subject: z.string(),
+  from: z.string(),
+  snippet: z.string(),
+  date: z.string(),
+  unread: z.boolean().default(false),
+});
+export type MailMessage = z.infer<typeof MailMessageSchema>;
+
+export const MailDetailSchema = MailMessageSchema.extend({
+  to: z.string().default(""),
+  body: z.string().default(""),
+});
+export type MailDetail = z.infer<typeof MailDetailSchema>;
+
+export const CalendarEventSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  start: z.string(),
+  end: z.string(),
+  allDay: z.boolean().default(false),
+  location: z.string().default(""),
+  description: z.string().default(""),
+  htmlLink: z.string().optional(),
+});
+export type CalendarEvent = z.infer<typeof CalendarEventSchema>;
+
+export const CalendarEventCreateInput = z.object({
+  workspaceId: z.string(),
+  title: z.string().min(1).max(200),
+  start: z.string(),
+  end: z.string(),
+  description: z.string().optional(),
+  location: z.string().optional(),
 });
 
 /* ------------------------------------------------------------------ */
@@ -230,6 +391,7 @@ export const TaskCardSchema = z.object({
   priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
   assignedAgentId: z.string().nullable().default(null),
   linkedGoalId: z.string().nullable().default(null),
+  linkedMilestoneIndex: z.number().nullable().default(null),
   linkedNoteIds: z.array(z.string()).default([]),
   checklist: z.array(ChecklistItemSchema).default([]),
   comments: z.array(TaskCommentSchema).default([]),
@@ -247,6 +409,7 @@ export const TaskInput = z.object({
   priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
   assignedAgentId: z.string().nullable().optional(),
   linkedGoalId: z.string().nullable().optional(),
+  linkedMilestoneIndex: z.number().nullable().optional(),
   dueDate: z.string().nullable().optional(),
   workspaceId: z.string().optional(),
 });
@@ -256,6 +419,7 @@ export const TaskPatchInput = TaskInput.partial().extend({
   order: z.number().optional(),
   checklist: z.array(ChecklistItemSchema).optional(),
   comment: z.string().max(2000).optional(),
+  linkedMilestoneIndex: z.number().nullable().optional(),
 });
 
 /* ------------------------------------------------------------------ */

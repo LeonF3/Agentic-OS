@@ -1,7 +1,7 @@
 import { readCollection, readDoc } from "./store";
 import { SettingsSchema } from "./schemas";
 import type { Provider, Settings, TaskType } from "./schemas";
-import { callProvider, keyPresent, type AdapterResult } from "./adapters";
+import { callProvider, keyPresent, type AdapterResult, type ChatTurn } from "./adapters";
 
 /**
  * The Brain — model routing.
@@ -51,6 +51,7 @@ export interface ModelCall {
   taskType: TaskType;
   system: string;
   prompt: string;
+  history?: ChatTurn[];
   providerOverride?: string;
   dryRun?: boolean;
 }
@@ -76,7 +77,11 @@ export async function runModel(call: ModelCall): Promise<ModelCallResult> {
       durationMs: 0,
     };
   }
-  const result = await callProvider(provider, { system: call.system, prompt: call.prompt });
+  const result = await callProvider(provider, {
+    system: call.system,
+    prompt: call.prompt,
+    history: call.history,
+  });
   return {
     ...result,
     providerId: result.degraded ? "local-dev" : provider.id,

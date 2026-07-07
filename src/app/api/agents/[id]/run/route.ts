@@ -15,6 +15,8 @@ export async function POST(req: Request, { params }: Params) {
       taskType: input.taskType,
       providerId: input.providerId,
       title: input.title,
+      skillIds: input.skillIds,
+      taskId: input.taskId,
     });
   });
 }

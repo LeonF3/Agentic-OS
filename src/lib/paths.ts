@@ -15,6 +15,10 @@ export function uploadsDir(): string {
   return path.join(dataDir(), "uploads");
 }
 
+export function skillsDir(): string {
+  return path.join(dataDir(), "skills");
+}
+
 export function collectionFile(name: string): string {
   return path.join(dataDir(), `${name}.json`);
 }
@@ -27,6 +31,7 @@ export function ensureDataDirs(): void {
   ensureDir(dataDir());
   ensureDir(vaultDir());
   ensureDir(uploadsDir());
+  ensureDir(skillsDir());
 }
 
 /**

@@ -13,6 +13,10 @@ const PREFIXES = {
   audit: "evt",
   queue: "mw",
   provider: "prov",
+  chat: "chat",
+  skill: "skill",
+  conn: "conn",
+  oauth: "oauth",
 } as const;
 
 export type IdKind = keyof typeof PREFIXES;

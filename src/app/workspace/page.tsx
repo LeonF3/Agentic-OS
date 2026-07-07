@@ -7,7 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import { Badge, Card, EmptyState, Spinner } from "@/components/ui";
 import { useApi } from "@/lib/useApi";
 import { timeAgo } from "@/lib/format";
-import { BUCKETS, BUCKET_LABELS, type AgentRun, type Bucket, type Goal, type NoteMeta, type StudioAsset, type TaskCard, type Workspace } from "@/lib/schemas";
+import { BUCKETS, BUCKET_LABELS, type AgentRun, type Bucket, type ChatSession, type Goal, type NoteMeta, type StudioAsset, type TaskCard, type Workspace } from "@/lib/schemas";
 
 interface BucketItem {
   id: string;
@@ -23,6 +23,7 @@ export default function WorkspaceBucketsPage() {
   const wsQ = ws ? `?workspaceId=${ws.id}` : "";
 
   const { data: runs } = useApi<AgentRun[]>(ws ? `/api/runs${wsQ}&limit=100` : null);
+  const { data: chatSessions } = useApi<ChatSession[]>(ws ? `/api/chats${wsQ}&limit=100` : null);
   const { data: tasks } = useApi<TaskCard[]>(ws ? `/api/tasks${wsQ}` : null);
   const { data: goals } = useApi<Goal[]>(ws ? `/api/goals${wsQ}` : null);
   const { data: assets } = useApi<StudioAsset[]>(ws ? `/api/studio${wsQ}` : null);
@@ -30,7 +31,7 @@ export default function WorkspaceBucketsPage() {
 
   const [bucket, setBucket] = useState<Bucket>("agent-runs");
 
-  const loaded = runs && tasks && goals && assets && memory;
+  const loaded = runs && chatSessions && tasks && goals && assets && memory;
 
   const buckets = useMemo(() => {
     const map = new Map<Bucket, BucketItem[]>();
@@ -39,7 +40,9 @@ export default function WorkspaceBucketsPage() {
 
     for (const r of runs!) {
       map.get("agent-runs")!.push({ id: r.id, title: r.title, subtitle: `${r.status} · ${r.model}`, href: null, at: r.startedAt });
-      map.get("chats")!.push({ id: `c-${r.id}`, title: r.input.slice(0, 90), subtitle: r.status, href: null, at: r.startedAt });
+    }
+    for (const s of chatSessions!) {
+      map.get("chats")!.push({ id: s.id, title: s.title, subtitle: "session", href: `/chats?session=${s.id}`, at: s.updatedAt });
     }
     for (const t of tasks!) map.get("tasks")!.push({ id: t.id, title: t.title, subtitle: t.column, href: "/kanban", at: t.updatedAt });
     for (const g of goals!) map.get("goals")!.push({ id: g.id, title: g.title, subtitle: `${g.status} · ${g.progress}%`, href: "/goals", at: g.updatedAt });
@@ -57,7 +60,7 @@ export default function WorkspaceBucketsPage() {
     }
     for (const items of map.values()) items.sort((a, b) => (a.at < b.at ? 1 : -1));
     return map;
-  }, [loaded, runs, tasks, goals, assets, memory]);
+  }, [loaded, runs, chatSessions, tasks, goals, assets, memory]);
 
   const current = buckets.get(bucket) ?? [];
 

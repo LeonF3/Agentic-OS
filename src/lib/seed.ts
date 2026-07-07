@@ -358,6 +358,7 @@ async function seedOnce(): Promise<void> {
         priority: "medium",
         assignedAgentId: null,
         linkedGoalId: null,
+        linkedMilestoneIndex: null,
         linkedNoteIds: [],
         checklist: [
           { text: "Run a quick prompt from Mission Control", done: false },
@@ -381,6 +382,7 @@ async function seedOnce(): Promise<void> {
         priority: "high",
         assignedAgentId: null,
         linkedGoalId: null,
+        linkedMilestoneIndex: null,
         linkedNoteIds: [],
         checklist: [],
         comments: [],

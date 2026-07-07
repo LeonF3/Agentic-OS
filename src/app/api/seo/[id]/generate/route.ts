@@ -83,6 +83,7 @@ export async function POST(req: Request, { params }: Params) {
       priority: "medium",
       assignedAgentId: null,
       linkedGoalId: null,
+      linkedMilestoneIndex: null,
       linkedNoteIds: [],
       checklist: [
         { text: "Generate content brief", done: false },

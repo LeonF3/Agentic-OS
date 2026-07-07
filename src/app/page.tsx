@@ -4,10 +4,10 @@ import Link from "next/link";
 import { Activity, ArrowRight, Bot, KanbanSquare, Library, RefreshCw, Target } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import QuickPrompt from "@/components/QuickPrompt";
-import { Badge, Card, EmptyState, Spinner } from "@/components/ui";
+import { Card, EmptyState, Spinner } from "@/components/ui";
 import { useApi } from "@/lib/useApi";
 import { timeAgo, truncate } from "@/lib/format";
-import { KANBAN_COLUMN_LABELS, type AgentRun, type AuditEvent, type Goal, type TaskCard, type Workspace } from "@/lib/schemas";
+import { KANBAN_COLUMN_LABELS, type AuditEvent, type ChatSession, type Goal, type TaskCard, type Workspace } from "@/lib/schemas";
 
 interface AgentWithStats {
   id: string;
@@ -24,7 +24,7 @@ export default function MissionControl() {
   const wsQ = ws ? `?workspaceId=${ws.id}` : "";
 
   const { data: agents } = useApi<AgentWithStats[]>("/api/agents");
-  const { data: runs } = useApi<AgentRun[]>(ws ? `/api/runs${wsQ}&limit=6` : null, 15000);
+  const { data: sessions } = useApi<ChatSession[]>(ws ? `/api/chats${wsQ}&limit=6` : null, 15000);
   const { data: goals } = useApi<Goal[]>(ws ? `/api/goals${wsQ}` : null);
   const { data: tasks } = useApi<TaskCard[]>(ws ? `/api/tasks${wsQ}` : null);
   const { data: events } = useApi<AuditEvent[]>(ws ? `/api/audit${wsQ}&limit=10` : null, 15000);
@@ -121,24 +121,28 @@ export default function MissionControl() {
 
         {/* Recent runs */}
         <Card
-          title="Recent agent runs"
+          title="Recent chats"
           action={
-            <Link href="/agents" className="flex items-center gap-1 text-xs text-indigo-soft hover:underline">
-              Roster <ArrowRight size={11} />
+            <Link href="/chats" className="flex items-center gap-1 text-xs text-indigo-soft hover:underline">
+              All chats <ArrowRight size={11} />
             </Link>
           }
         >
-          {!runs ? (
+          {!sessions ? (
             <Spinner />
-          ) : runs.length === 0 ? (
-            <EmptyState icon={Bot} title="No runs yet in this workspace" hint="Use the quick prompt above — every run is recorded here." />
+          ) : sessions.length === 0 ? (
+            <EmptyState icon={Bot} title="No chats yet in this workspace" hint="Use the quick prompt above or open Chats to start one." />
           ) : (
             <ul className="space-y-2">
-              {runs.map((r) => (
-                <li key={r.id} className="flex items-center gap-2.5 rounded-lg border border-white/8 px-2.5 py-2">
-                  <Badge status={r.status} />
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-mist-300">{r.title}</span>
-                  <span className="shrink-0 font-mono text-[10.5px] text-mist-500">{timeAgo(r.startedAt)}</span>
+              {sessions.map((s) => (
+                <li key={s.id}>
+                  <Link
+                    href={`/chats?session=${s.id}`}
+                    className="flex items-center gap-2.5 rounded-lg border border-white/8 px-2.5 py-2 transition hover:border-indigo-glow/40"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-mist-300">{s.title}</span>
+                    <span className="shrink-0 font-mono text-[10.5px] text-mist-500">{timeAgo(s.updatedAt)}</span>
+                  </Link>
                 </li>
               ))}
             </ul>

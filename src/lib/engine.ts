@@ -3,7 +3,19 @@ import { newId, nowIso } from "./ids";
 import { audit } from "./audit";
 import { listNotes } from "./vault";
 import { runModel, getSettings } from "./modelrouter";
-import type { Agent, AgentRun, MemoryWrite, RunLog, TaskType, Workspace } from "./schemas";
+import type { ChatTurn } from "./adapters";
+import { resolveSkillsForRun, formatSkillsForSystem } from "./skills";
+import {
+  advanceTaskAfterAgentRun,
+  agentHasKanbanTools,
+  appendTaskComment,
+  buildTaskRunPrompt,
+  executeKanbanActions,
+  getTask,
+  kanbanToolsSystemPrompt,
+  parseKanbanActions,
+} from "./kanban";
+import type { Agent, AgentRun, MemoryWrite, RunLog, TaskCard, TaskType, Workspace } from "./schemas";
 
 /**
  * Agent run engine.
@@ -15,6 +27,17 @@ function log(logs: RunLog[], level: RunLog["level"], message: string): void {
   logs.push({ at: nowIso(), level, message });
 }
 
+function buildSessionHistory(priorRuns: AgentRun[]): ChatTurn[] {
+  const turns: ChatTurn[] = [];
+  for (const r of priorRuns) {
+    if (r.status !== "complete" && r.status !== "failed") continue;
+    turns.push({ role: "user", content: r.input });
+    if (r.output) turns.push({ role: "assistant", content: r.output });
+    else if (r.error) turns.push({ role: "assistant", content: `Error: ${r.error}` });
+  }
+  return turns;
+}
+
 export async function executeAgentRun(opts: {
   agentId: string;
   workspaceId?: string;
@@ -22,6 +45,9 @@ export async function executeAgentRun(opts: {
   taskType?: TaskType;
   providerId?: string;
   title?: string;
+  sessionId?: string;
+  skillIds?: string[];
+  taskId?: string;
 }): Promise<AgentRun> {
   const [agents, workspaces, settings] = await Promise.all([
     readCollection<Agent>("agents"),
@@ -40,11 +66,28 @@ export async function executeAgentRun(opts: {
   }
 
   const logs: RunLog[] = [];
-  const title = opts.title?.trim() || opts.input.slice(0, 80).replace(/\s+/g, " ");
+  let linkedTask: TaskCard | null = null;
+  if (opts.taskId) {
+    linkedTask = await getTask(opts.taskId);
+    if (linkedTask && linkedTask.workspaceId !== workspaceId) {
+      throw new Error("Task belongs to a different workspace");
+    }
+  }
+
+  const resolved = await resolveSkillsForRun({
+    input: opts.input,
+    workspaceId,
+    skillIds: opts.skillIds,
+  });
+  const userPrompt = linkedTask
+    ? `${buildTaskRunPrompt(linkedTask)}\n\n## Additional instructions\n${resolved.cleanInput || opts.input.trim()}`
+    : resolved.cleanInput || opts.input.trim();
+  const title = opts.title?.trim() || userPrompt.slice(0, 80).replace(/\s+/g, " ");
   const run: AgentRun = {
     id: newId("run"),
     workspaceId,
     agentId: agent.id,
+    sessionId: opts.sessionId ?? null,
     providerId: "pending",
     model: "pending",
     title,
@@ -82,16 +125,48 @@ export async function executeAgentRun(opts: {
       }
     }
 
+    const skillBlock = formatSkillsForSystem(resolved.skills, workspaces);
+    if (resolved.skills.length > 0) {
+      log(
+        logs,
+        "info",
+        `Skills loaded: ${resolved.skills.map((s) => `/${s.name}`).join(", ")}`
+      );
+      run.toolCalls.push("skills.load");
+    }
+
     const system = [
       agent.instructions || `You are ${agent.name}, ${agent.role}.`,
       `Active workspace: ${workspace.name} — ${workspace.description}`,
       "Answer in clean markdown. Be specific and practical.",
       memoryContext,
+      skillBlock ? `\n\n## Active skills\nFollow these skill instructions for this run:\n\n${skillBlock}` : "",
+      agentHasKanbanTools(agent.tools) ? `\n\n${kanbanToolsSystemPrompt()}` : "",
+      linkedTask ? `\n\nLinked kanban card: ${linkedTask.id} (${linkedTask.column})` : "",
     ].join("\n");
 
     const taskType = opts.taskType ?? agent.modelRoute;
+
+    let history: ChatTurn[] = [];
+    if (opts.sessionId) {
+      const allRuns = await readCollection<AgentRun>("runs");
+      const priorRuns = allRuns
+        .filter((r) => r.sessionId === opts.sessionId && r.id !== run.id)
+        .sort((a, b) => (a.startedAt > b.startedAt ? 1 : -1));
+      history = buildSessionHistory(priorRuns);
+      if (history.length > 0) {
+        log(logs, "info", `Session history: ${priorRuns.length} prior turn(s)`);
+      }
+    }
+
     log(logs, "info", `Routing task type "${taskType}" via The Brain`);
-    const result = await runModel({ taskType, system, prompt: opts.input, providerOverride: opts.providerId });
+    const result = await runModel({
+      taskType,
+      system,
+      prompt: userPrompt,
+      history,
+      providerOverride: opts.providerId,
+    });
     log(
       logs,
       "info",
@@ -104,6 +179,29 @@ export async function executeAgentRun(opts: {
     run.degraded = result.degraded;
     run.status = "complete";
     run.completedAt = nowIso();
+
+    const { cleanOutput, actions } = parseKanbanActions(result.output);
+    if (actions && agentHasKanbanTools(agent.tools)) {
+      const kanbanLogs = await executeKanbanActions(actions, workspaceId, agent.id);
+      for (const msg of kanbanLogs) {
+        log(logs, "tool", msg);
+        run.toolCalls.push(msg.startsWith("kanban.create") ? "kanban.create" : "kanban.move");
+      }
+      run.output = cleanOutput || result.output;
+    }
+
+    if (linkedTask) {
+      const excerpt = run.output.slice(0, 500) + (run.output.length > 500 ? "…" : "");
+      await appendTaskComment(
+        linkedTask.id,
+        agent.id,
+        `Agent run complete (${result.providerName}):\n${excerpt}`
+      );
+      const advanced = await advanceTaskAfterAgentRun(linkedTask.id);
+      if (advanced && advanced.column !== linkedTask.column) {
+        log(logs, "info", `Kanban card advanced: ${linkedTask.column} → ${advanced.column}`);
+      }
+    }
 
     // Queue the output for the Loop → Vault.
     const mw: MemoryWrite = {

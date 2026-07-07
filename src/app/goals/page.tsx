@@ -80,13 +80,24 @@ export default function GoalsPage() {
         toast("info", "No open milestones to convert — add milestones first");
         return;
       }
-      for (const m of pending.slice(0, 6)) {
+      let created = 0;
+      for (const [i, m] of goal.milestones.entries()) {
+        if (m.done) continue;
+        if (created >= 6) break;
         await api("/api/tasks", {
-          body: { title: m.text, column: "triage", workspaceId: goal.workspaceId, linkedGoalId: goal.id, description: `From goal: ${goal.title}` },
+          body: {
+            title: m.text,
+            column: "triage",
+            workspaceId: goal.workspaceId,
+            linkedGoalId: goal.id,
+            linkedMilestoneIndex: i,
+            description: `From goal: ${goal.title}`,
+          },
         });
+        created++;
       }
       refresh("/api/tasks", "/api/audit");
-      toast("success", `${Math.min(pending.length, 6)} kanban card(s) created from milestones`);
+      toast("success", `${created} kanban card(s) created from milestones`);
     } catch (err) {
       toast("error", err instanceof Error ? err.message : "Task generation failed");
     }

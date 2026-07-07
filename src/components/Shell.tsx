@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  Sparkles, Bot, Target, KanbanSquare, Clapperboard, TrendingUp, NotebookPen,
-  FolderKanban, Library, BrainCircuit, TerminalSquare, Settings, Activity,
-  ScrollText, ChevronDown, Check, Plus, Search, Menu, RefreshCw,
+  Sparkles, Bot, Target, KanbanSquare, MessageSquare, Mail, Calendar, Clapperboard, TrendingUp, NotebookPen,
+  FolderKanban, Library, BrainCircuit, Wand2, TerminalSquare, Settings, Activity,
+  ScrollText, ChevronDown, Check, Plus, Search, Menu, RefreshCw, Plug,
 } from "lucide-react";
 import { ToastProvider, useToast } from "./toast";
 import { api, refresh, useApi } from "@/lib/useApi";
@@ -19,6 +19,9 @@ const NAV = [
     group: "Command",
     items: [
       { href: "/", label: "Mission Control", icon: Sparkles },
+      { href: "/chats", label: "Chats", icon: MessageSquare },
+      { href: "/mail", label: "Mail", icon: Mail },
+      { href: "/calendar", label: "Calendar", icon: Calendar },
       { href: "/agents", label: "Agent Roster", icon: Bot },
       { href: "/goals", label: "Goals", icon: Target },
       { href: "/kanban", label: "Kanban", icon: KanbanSquare },
@@ -37,12 +40,14 @@ const NAV = [
     group: "Mind",
     items: [
       { href: "/memory", label: "The Vault", icon: Library },
+      { href: "/skills", label: "Skills", icon: Wand2 },
       { href: "/brain", label: "The Brain", icon: BrainCircuit },
     ],
   },
   {
     group: "System",
     items: [
+      { href: "/connectors", label: "Connections", icon: Plug },
       { href: "/terminal", label: "Terminal", icon: TerminalSquare },
       { href: "/health", label: "System Health", icon: Activity },
       { href: "/audit", label: "Audit Log", icon: ScrollText },

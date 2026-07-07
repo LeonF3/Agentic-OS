@@ -17,11 +17,22 @@ export function keyPresent(p: Provider): boolean {
   return Boolean(p.envKey && process.env[p.envKey]);
 }
 
+export type ChatTurn = { role: "user" | "assistant"; content: string };
+
 interface CallOpts {
   system: string;
   prompt: string;
+  history?: ChatTurn[];
   model?: string;
   timeoutMs?: number;
+}
+
+function buildUserPrompt(opts: CallOpts): string {
+  if (!opts.history?.length) return opts.prompt;
+  const transcript = opts.history
+    .map((t) => `${t.role === "user" ? "User" : "Assistant"}: ${t.content}`)
+    .join("\n\n");
+  return `${transcript}\n\nUser: ${opts.prompt}`;
 }
 
 async function fetchJson(url: string, init: RequestInit, timeoutMs: number): Promise<Record<string, unknown>> {
@@ -42,6 +53,7 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs: number): Pro
 }
 
 async function callOpenAiCompatible(baseUrl: string, apiKey: string, opts: CallOpts, model: string): Promise<string> {
+  const history = (opts.history ?? []).map((t) => ({ role: t.role, content: t.content }));
   const body = await fetchJson(
     `${baseUrl}/chat/completions`,
     {
@@ -49,10 +61,7 @@ async function callOpenAiCompatible(baseUrl: string, apiKey: string, opts: CallO
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
-        messages: [
-          { role: "system", content: opts.system },
-          { role: "user", content: opts.prompt },
-        ],
+        messages: [{ role: "system", content: opts.system }, ...history, { role: "user", content: opts.prompt }],
       }),
     },
     opts.timeoutMs ?? 60000
@@ -62,6 +71,7 @@ async function callOpenAiCompatible(baseUrl: string, apiKey: string, opts: CallO
 }
 
 async function callAnthropic(apiKey: string, opts: CallOpts, model: string): Promise<string> {
+  const history = (opts.history ?? []).map((t) => ({ role: t.role, content: t.content }));
   const body = await fetchJson(
     "https://api.anthropic.com/v1/messages",
     {
@@ -75,7 +85,7 @@ async function callAnthropic(apiKey: string, opts: CallOpts, model: string): Pro
         model,
         max_tokens: 4096,
         system: opts.system,
-        messages: [{ role: "user", content: opts.prompt }],
+        messages: [...history, { role: "user", content: opts.prompt }],
       }),
     },
     opts.timeoutMs ?? 60000
@@ -85,6 +95,10 @@ async function callAnthropic(apiKey: string, opts: CallOpts, model: string): Pro
 }
 
 async function callGemini(apiKey: string, opts: CallOpts, model: string): Promise<string> {
+  const history = (opts.history ?? []).map((t) => ({
+    role: t.role === "assistant" ? "model" : "user",
+    parts: [{ text: t.content }],
+  }));
   const body = await fetchJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
@@ -92,7 +106,7 @@ async function callGemini(apiKey: string, opts: CallOpts, model: string): Promis
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: opts.system }] },
-        contents: [{ role: "user", parts: [{ text: opts.prompt }] }],
+        contents: [...history, { role: "user", parts: [{ text: opts.prompt }] }],
       }),
     },
     opts.timeoutMs ?? 60000
@@ -108,9 +122,10 @@ async function callGemini(apiKey: string, opts: CallOpts, model: string): Promis
  * draft from the prompt — and is honest about what it is.
  */
 export function localDevAdapter(opts: CallOpts): string {
-  const lines = opts.prompt.trim().split(/\n+/).filter(Boolean);
+  const prompt = buildUserPrompt(opts);
+  const lines = prompt.trim().split(/\n+/).filter(Boolean);
   const firstLine = lines[0] ?? "Untitled task";
-  const words = opts.prompt.toLowerCase();
+  const words = prompt.toLowerCase();
   const isCode = /code|bug|refactor|implement|api|function|test/.test(words);
   const isPlan = /plan|goal|strategy|roadmap|organize|break.*down/.test(words);
   const isContent = /write|article|post|content|blog|script|caption/.test(words);
